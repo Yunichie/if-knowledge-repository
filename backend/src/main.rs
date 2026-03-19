@@ -9,6 +9,8 @@ mod state;
 
 use state::AppState;
 
+use aws_sdk_s3::config::Credentials;
+
 #[tokio::main]
 async fn main() {
     rustls::crypto::ring::default_provider()
@@ -25,6 +27,9 @@ async fn main() {
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let access_key = std::env::var("R2_ACCESS_KEY_ID").expect("R2_ACCESS_KEY_ID must be set");
+    let secret_key =
+        std::env::var("R2_SECRET_ACCESS_KEY").expect("R2_SECRET_ACCESS_KEY must be set");
     let r2_endpoint = std::env::var("R2_ENDPOINT").expect("R2_ENDPOINT must be set");
     let r2_bucket = std::env::var("R2_BUCKET").expect("R2_BUCKET must be set");
     let r2_public_url = std::env::var("R2_PUBLIC_URL").expect("R2_PUBLIC_URL must be set");
@@ -41,9 +46,12 @@ async fn main() {
         .await
         .expect("Failed to run database migrations");
 
+    let credentials = Credentials::new(&access_key, &secret_key, None, None, "custom");
+
     let r2_config = aws_config::from_env()
         .endpoint_url(&r2_endpoint)
         .region(aws_config::Region::new("auto"))
+        .credentials_provider(credentials)
         .load()
         .await;
 
