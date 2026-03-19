@@ -11,6 +11,9 @@ use state::AppState;
 
 #[tokio::main]
 async fn main() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
     dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()
@@ -22,6 +25,7 @@ async fn main() {
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let r2_endpoint = std::env::var("R2_ENDPOINT").expect("R2_ENDPOINT must be set");
     let r2_bucket = std::env::var("R2_BUCKET").expect("R2_BUCKET must be set");
     let r2_public_url = std::env::var("R2_PUBLIC_URL").expect("R2_PUBLIC_URL must be set");
     let frontend_url = std::env::var("FRONTEND_URL").expect("FRONTEND_URL must be set");
@@ -37,8 +41,17 @@ async fn main() {
         .await
         .expect("Failed to run database migrations");
 
-    let r2_config = aws_config::from_env().load().await;
-    let r2 = aws_sdk_s3::Client::new(&r2_config);
+    let r2_config = aws_config::from_env()
+        .endpoint_url(&r2_endpoint)
+        .region(aws_config::Region::new("auto"))
+        .load()
+        .await;
+
+    let r2 = aws_sdk_s3::Client::from_conf(
+        aws_sdk_s3::config::Builder::from(&r2_config)
+            .force_path_style(true)
+            .build(),
+    );
 
     let state = AppState {
         db,

@@ -17,7 +17,7 @@ pub struct Claims {
     pub sub: String,
     pub email: String,
     pub name: String,
-    pub exp: i64,
+    pub exp: usize,
 }
 
 /// Response returned after successful authentication.
@@ -47,6 +47,15 @@ impl From<Student> for StudentDto {
     }
 }
 
+/// Google userinfo API response.
+#[derive(Deserialize)]
+struct GoogleUserInfo {
+    sub: String,
+    email: String,
+    name: String,
+    picture: Option<String>,
+}
+
 /// Hash a plaintext password with Argon2id.
 pub fn hash_password(password: &str) -> Result<String, AppError> {
     let salt = SaltString::generate(&mut OsRng);
@@ -71,7 +80,7 @@ pub fn issue_jwt(student: &Student, secret: &str) -> Result<String, AppError> {
         sub: student.id.to_string(),
         email: student.email.clone(),
         name: student.full_name.clone(),
-        exp: (Utc::now() + Duration::days(7)).timestamp(),
+        exp: (Utc::now() + Duration::days(7)).timestamp() as usize,
     };
     encode(
         &Header::default(),
@@ -122,10 +131,9 @@ pub async fn login(state: &AppState, req: LoginRequest) -> Result<AuthResponse, 
         .await?
         .ok_or_else(|| AppError::BadRequest("Invalid email or password".into()))?;
 
-    let credential =
-        repositories::credentials::find_email_credential(&state.db, student.id)
-            .await?
-            .ok_or_else(|| AppError::BadRequest("Invalid email or password".into()))?;
+    let credential = repositories::credentials::find_email_credential(&state.db, student.id)
+        .await?
+        .ok_or_else(|| AppError::BadRequest("Invalid email or password".into()))?;
 
     if !verify_password(
         &req.password,
@@ -133,6 +141,38 @@ pub async fn login(state: &AppState, req: LoginRequest) -> Result<AuthResponse, 
     )? {
         return Err(AppError::BadRequest("Invalid email or password".into()));
     }
+
+    let token = issue_jwt(&student, &state.jwt_secret)?;
+    Ok(AuthResponse {
+        token,
+        student: student.into(),
+    })
+}
+
+/// Log in or register via Google OAuth.
+/// Fetches the user's profile from Google, upserts them in the DB, and issues a backend JWT.
+pub async fn google_login(state: &AppState, access_token: &str) -> Result<AuthResponse, AppError> {
+    let client = reqwest::Client::new();
+    let google_user = client
+        .get("https://www.googleapis.com/oauth2/v3/userinfo")
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("Failed to contact Google: {}", e)))?
+        .json::<GoogleUserInfo>()
+        .await
+        .map_err(|e| {
+            AppError::Internal(anyhow::anyhow!("Failed to parse Google response: {}", e))
+        })?;
+
+    let student = repositories::students::upsert_google(
+        &state.db,
+        &google_user.email,
+        &google_user.name,
+        google_user.picture.as_deref(),
+        &google_user.sub,
+    )
+    .await?;
 
     let token = issue_jwt(&student, &state.jwt_secret)?;
     Ok(AuthResponse {

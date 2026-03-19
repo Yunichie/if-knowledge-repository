@@ -1,3 +1,4 @@
+import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions } from "next-auth";
@@ -31,14 +32,28 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, account, user }) {
-      if (account?.provider === "google") {
-        token.accessToken = account.access_token;
-        token.provider = "google";
-      }
       if (user?.accessToken) {
         token.accessToken = user.accessToken;
         token.provider = "credentials";
       }
+
+      if (account?.provider === "google" && account.access_token) {
+        try {
+          const res = await fetch(`${process.env.API_URL}/api/v1/auth/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: account.access_token }),
+          });
+          if (res.ok) {
+            const { token: backendToken } = await res.json();
+            token.accessToken = backendToken;
+            token.provider = "google";
+          }
+        } catch (err) {
+          console.error("Failed to exchange Google token with backend:", err);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -50,3 +65,5 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
 };
+
+export default NextAuth(authOptions);

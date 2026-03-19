@@ -29,15 +29,11 @@ pub struct PresignResponse {
 /// Validate the upload request and generate a presigned PUT URL.
 pub async fn presign(state: &AppState, req: PresignRequest) -> Result<PresignResponse, AppError> {
     if req.content_type != "application/pdf" {
-        return Err(AppError::BadRequest(
-            "Only PDF files are allowed".into(),
-        ));
+        return Err(AppError::BadRequest("Only PDF files are allowed".into()));
     }
 
     if req.file_size > MAX_FILE_SIZE {
-        return Err(AppError::BadRequest(
-            "File size exceeds 50 MB limit".into(),
-        ));
+        return Err(AppError::BadRequest("File size exceeds 50 MB limit".into()));
     }
 
     if req.file_size <= 0 {
@@ -61,7 +57,10 @@ pub async fn presign(state: &AppState, req: PresignRequest) -> Result<PresignRes
         PRESIGN_EXPIRY_SECS,
     )
     .await
-    .map_err(|e| AppError::Storage(e.to_string()))?;
+    .map_err(|e| {
+        tracing::error!("Presign error (full): {:?}", e);
+        AppError::Storage(format!("{:?}", e))
+    })?;
 
     let file_url = format!("{}/{}", state.r2_public_url, key);
 

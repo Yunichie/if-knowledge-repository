@@ -14,22 +14,21 @@ pub fn build(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/auth/register", post(handlers::auth::register))
         .route("/auth/login", post(handlers::auth::login))
+        .route("/auth/google", post(handlers::auth::google))
         .route("/resources", get(handlers::resources::list))
-        .route("/resources/:id", get(handlers::resources::get_one))
+        .route("/resources/{id}", get(handlers::resources::get_one))
         .route("/categories", get(handlers::categories::list));
 
     let protected_routes = Router::new()
         .route("/resources", post(handlers::resources::create))
-        .route("/resources/:id", delete(handlers::resources::delete))
+        .route("/resources/{id}", delete(handlers::resources::delete))
         .route("/uploads/presign", post(handlers::uploads::presign))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             middleware::auth::require_auth,
         ));
 
-    let api = Router::new()
-        .merge(public_routes)
-        .merge(protected_routes);
+    let api = Router::new().merge(public_routes).merge(protected_routes);
 
     let cors = CorsLayer::new()
         .allow_origin(

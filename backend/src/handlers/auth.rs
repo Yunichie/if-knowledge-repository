@@ -23,6 +23,12 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+/// Request body for Google OAuth login.
+#[derive(Deserialize)]
+pub struct GoogleAuthRequest {
+    pub access_token: String,
+}
+
 /// POST /api/v1/auth/register
 pub async fn register(
     State(state): State<AppState>,
@@ -38,5 +44,14 @@ pub async fn login(
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, AppError> {
     let response = services::auth::login(&state, body).await?;
+    Ok(Json(response))
+}
+
+/// POST /api/v1/auth/google
+pub async fn google(
+    State(state): State<AppState>,
+    Json(body): Json<GoogleAuthRequest>,
+) -> Result<Json<AuthResponse>, AppError> {
+    let response = services::auth::google_login(&state, &body.access_token).await?;
     Ok(Json(response))
 }

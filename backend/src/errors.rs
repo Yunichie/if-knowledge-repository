@@ -31,6 +31,9 @@ impl IntoResponse for AppError {
         if let AppError::Internal(ref e) = self {
             tracing::error!("Internal error: {:?}", e);
         }
+        if let AppError::Storage(ref e) = self {
+            tracing::error!("Storage error: {}", e);
+        }
 
         let (status, message) = match &self {
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized"),
