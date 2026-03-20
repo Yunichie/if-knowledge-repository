@@ -40,7 +40,10 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
   const { data: session } = useSession();
   const { deleteResource, isLoading: isDeleting } = useDeleteResource();
 
-  const badgeStyle = TYPE_BADGE_STYLES[resource.type] ?? "bg-muted text-muted-foreground";
+  const badgeStyle =
+    TYPE_BADGE_STYLES[resource.type] ?? "bg-muted text-muted-foreground";
+
+  const isAuthor = !!session?.userId && session.userId === resource.author_id;
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this resource?")) return;
@@ -63,7 +66,9 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
           </span>
         </div>
 
-        <h1 className="text-2xl font-semibold text-foreground">{resource.title}</h1>
+        <h1 className="text-2xl font-semibold text-foreground">
+          {resource.title}
+        </h1>
 
         <p className="text-xs text-muted-foreground">
           {resource.author_name} · {formatDate(resource.created_at)}
@@ -105,7 +110,7 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
           </a>
           <iframe
             src={resource.file_url}
-            className="w-full h-[600px] rounded-lg border border-border"
+            className="w-full h-150 rounded-lg border border-border"
             title={resource.title}
           />
         </div>
@@ -130,8 +135,8 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
         </div>
       )}
 
-      {/* Author actions */}
-      {session?.accessToken && (
+      {/* Author-only actions */}
+      {isAuthor && (
         <>
           <Separator />
           <div className="flex justify-end">

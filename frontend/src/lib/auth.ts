@@ -35,6 +35,7 @@ export const authOptions: NextAuthOptions = {
       if (user?.accessToken) {
         token.accessToken = user.accessToken;
         token.provider = "credentials";
+        token.userId = user.id;
       }
 
       if (account?.provider === "google" && account.access_token) {
@@ -45,9 +46,10 @@ export const authOptions: NextAuthOptions = {
             body: JSON.stringify({ access_token: account.access_token }),
           });
           if (res.ok) {
-            const { token: backendToken } = await res.json();
+            const { token: backendToken, student } = await res.json();
             token.accessToken = backendToken;
             token.provider = "google";
+            token.userId = student.id;
           }
         } catch (err) {
           console.error("Failed to exchange Google token with backend:", err);
@@ -58,6 +60,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
+      session.userId = token.userId as string;
       return session;
     },
   },
