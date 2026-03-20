@@ -2,6 +2,7 @@ use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::handlers::resources::CreateResourceRequest;
+use crate::models::pagination::PaginatedResponse;
 use crate::models::resource::Resource;
 use crate::repositories;
 use crate::state::AppState;
@@ -45,23 +46,31 @@ pub async fn list(
     tag: Option<String>,
     page: i64,
     page_size: i64,
-) -> Result<Vec<Resource>, AppError> {
+) -> Result<PaginatedResponse<Resource>, AppError> {
     let page_size = page_size.min(50).max(1);
     let page = page.max(1);
     let offset = (page - 1) * page_size;
 
-    let resources = repositories::resources::list(
-        &state.db,
-        search.as_deref(),
-        resource_type.as_deref(),
-        category_id,
-        tag.as_deref(),
-        page_size,
-        offset,
-    )
-    .await?;
+    let (resources, total) = tokio::try_join!(
+        repositories::resources::list(
+            &state.db,
+            search.as_deref(),
+            resource_type.as_deref(),
+            category_id,
+            tag.as_deref(),
+            page_size,
+            offset,
+        ),
+        repositories::resources::count(
+            &state.db,
+            search.as_deref(),
+            resource_type.as_deref(),
+            category_id,
+            tag.as_deref(),
+        ),
+    )?;
 
-    Ok(resources)
+    Ok(PaginatedResponse::new(resources, total, page, page_size))
 }
 
 /// Get a single resource by ID.
@@ -72,11 +81,7 @@ pub async fn get_one(state: &AppState, id: Uuid) -> Result<Resource, AppError> {
 }
 
 /// Delete a resource. Only the author may delete their own resource.
-pub async fn delete(
-    state: &AppState,
-    student_id: Uuid,
-    resource_id: Uuid,
-) -> Result<(), AppError> {
+pub async fn delete(state: &AppState, student_id: Uuid, resource_id: Uuid) -> Result<(), AppError> {
     let resource = repositories::resources::find_by_id(&state.db, resource_id)
         .await?
         .ok_or(AppError::NotFound)?;

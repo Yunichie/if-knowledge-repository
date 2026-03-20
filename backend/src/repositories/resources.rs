@@ -26,6 +26,35 @@ pub async fn find_by_id(db: &PgPool, id: Uuid) -> Result<Option<Resource>, sqlx:
     .await
 }
 
+/// Count resources matching the same filter predicate used by `list`.
+pub async fn count(
+    db: &PgPool,
+    search: Option<&str>,
+    resource_type: Option<&str>,
+    category_id: Option<Uuid>,
+    tag: Option<&str>,
+) -> Result<i64, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT COUNT(*) AS "total!"
+        FROM resources r
+        WHERE
+          ($1::TEXT IS NULL OR r.search_vector @@ plainto_tsquery('english', $1))
+          AND ($2::TEXT IS NULL OR r.type = $2)
+          AND ($3::UUID IS NULL OR r.category_id = $3)
+          AND ($4::TEXT IS NULL OR $4 = ANY(r.tags))
+        "#,
+        search,
+        resource_type,
+        category_id,
+        tag,
+    )
+    .fetch_one(db)
+    .await?;
+
+    Ok(row.total)
+}
+
 /// List resources with full-text search, type/category/tag filtering, and pagination.
 pub async fn list(
     db: &PgPool,

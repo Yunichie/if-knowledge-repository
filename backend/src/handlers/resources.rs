@@ -44,7 +44,7 @@ pub async fn list(
     State(state): State<AppState>,
     Query(query): Query<ResourceQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let resources = services::resources::list(
+    let paginated = services::resources::list(
         &state,
         query.q,
         query.resource_type,
@@ -55,7 +55,7 @@ pub async fn list(
     )
     .await?;
 
-    Ok(Json(resources))
+    Ok(Json(paginated))
 }
 
 /// GET /api/v1/resources/:id
