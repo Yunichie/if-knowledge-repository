@@ -31,6 +31,44 @@ const TYPE_BADGE_STYLES: Record<string, string> = {
   article: "bg-blue-50 text-blue-700",
 };
 
+/**
+ * Extract a YouTube video ID from any common URL:
+ *   https://www.youtube.com/watch?v=VIDEO_ID
+ *   https://www.youtube.com/watch?v=VIDEO_ID&t=120&list=PL...
+ *   https://youtu.be/VIDEO_ID
+ *   https://youtu.be/VIDEO_ID?t=120
+ *   https://www.youtube.com/embed/VIDEO_ID
+ *
+ * Returns null if no valid video ID can be found.
+ */
+function getYouTubeEmbedUrl(rawUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+
+  let videoId: string | null = null;
+
+  if (parsed.hostname === "youtu.be") {
+    videoId = parsed.pathname.slice(1) || null;
+  } else if (
+    parsed.hostname === "www.youtube.com" ||
+    parsed.hostname === "youtube.com" ||
+    parsed.hostname === "m.youtube.com"
+  ) {
+    if (parsed.pathname.startsWith("/embed/")) {
+      return rawUrl;
+    }
+    videoId = parsed.searchParams.get("v");
+  }
+
+  if (!videoId) return null;
+
+  return `https://www.youtube.com/embed/${videoId}`;
+}
+
 interface ResourceDetailProps {
   resource: Resource;
 }
@@ -51,6 +89,11 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
     router.push("/resources");
     router.refresh();
   };
+
+  const embedUrl =
+    resource.type === "youtube" && resource.youtube_url
+      ? getYouTubeEmbedUrl(resource.youtube_url)
+      : null;
 
   return (
     <article className="space-y-6">
@@ -116,16 +159,31 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
         </div>
       )}
 
-      {resource.type === "youtube" && resource.youtube_url && (
-        <div className="aspect-video">
-          <iframe
-            src={resource.youtube_url.replace("watch?v=", "embed/")}
-            className="w-full h-full rounded-lg"
-            allowFullScreen
-            title={resource.title}
-          />
-        </div>
-      )}
+      {resource.type === "youtube" &&
+        (embedUrl ? (
+          <div className="aspect-video">
+            <iframe
+              src={embedUrl}
+              className="w-full h-full rounded-lg"
+              allowFullScreen
+              title={resource.title}
+            />
+          </div>
+        ) : (
+          <p className="text-sm text-destructive">
+            Could not parse YouTube URL.{" "}
+            {resource.youtube_url && (
+              <a
+                href={resource.youtube_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Open on YouTube
+              </a>
+            )}
+          </p>
+        ))}
 
       {resource.type === "article" && resource.content && (
         <div className="prose prose-slate max-w-none">
