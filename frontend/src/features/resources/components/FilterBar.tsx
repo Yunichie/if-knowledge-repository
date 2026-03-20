@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import type { Category, ResourceType } from "@/lib/types";
 
 const RESOURCE_TYPES: { label: string; value: ResourceType }[] = [
@@ -10,6 +12,8 @@ const RESOURCE_TYPES: { label: string; value: ResourceType }[] = [
   { label: "YouTube", value: "youtube" },
   { label: "Article", value: "article" },
 ];
+
+const DEBOUNCE_MS = 400;
 
 interface FilterBarProps {
   categories: Category[];
@@ -19,9 +23,38 @@ export function FilterBar({ categories }: FilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentSearch = searchParams.get("q") ?? "";
   const currentType = searchParams.get("type") ?? "";
   const currentCategory = searchParams.get("category_id") ?? "";
+
+  const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setSearchValue(searchParams.get("q") ?? "");
+  }, [searchParams]);
+
+  const pushSearch = (q: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (q) {
+      params.set("q", q);
+    } else {
+      params.delete("q");
+    }
+    params.delete("page");
+    router.push(`/resources?${params.toString()}`);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => pushSearch(value), DEBOUNCE_MS);
+  };
+
+  const handleSearchSubmit = () => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    pushSearch(searchValue);
+  };
 
   const updateParams = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -37,17 +70,33 @@ export function FilterBar({ categories }: FilterBarProps) {
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <Input
-          type="search"
-          placeholder="Search resources…"
-          defaultValue={currentSearch}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              updateParams("q", (e.target as HTMLInputElement).value);
-            }
-          }}
-          className="flex-1"
-        />
+        <div className="relative flex-1">
+          <Input
+            type="search"
+            placeholder="Search resources…"
+            value={searchValue}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearchSubmit();
+              }
+            }}
+            className="pr-9"
+          />
+          {/* Inline search icon button (affordance🥀) */}
+          <button
+            type="button"
+            onClick={handleSearchSubmit}
+            aria-label="Search"
+            className="
+              absolute inset-y-0 right-0 flex items-center px-2.5
+              text-muted-foreground hover:text-foreground
+              transition-colors
+            "
+          >
+            <Search className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -63,7 +112,9 @@ export function FilterBar({ categories }: FilterBarProps) {
             key={value}
             variant={currentType === value ? "default" : "outline"}
             size="sm"
-            onClick={() => updateParams("type", currentType === value ? "" : value)}
+            onClick={() =>
+              updateParams("type", currentType === value ? "" : value)
+            }
           >
             {label}
           </Button>
@@ -84,7 +135,10 @@ export function FilterBar({ categories }: FilterBarProps) {
             variant={currentCategory === cat.id ? "default" : "outline"}
             size="sm"
             onClick={() =>
-              updateParams("category_id", currentCategory === cat.id ? "" : cat.id)
+              updateParams(
+                "category_id",
+                currentCategory === cat.id ? "" : cat.id,
+              )
             }
           >
             {cat.name}
