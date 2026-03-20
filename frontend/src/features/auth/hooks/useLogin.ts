@@ -2,13 +2,19 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 /** Hook for logging in with email + password via NextAuth. */
 export function useLogin() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string,
+    callbackUrl = "/resources",
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -23,6 +29,7 @@ export function useLogin() {
         return false;
       }
 
+      router.push(callbackUrl);
       return true;
     } catch {
       setError("Login failed");

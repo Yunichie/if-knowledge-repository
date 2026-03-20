@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +10,16 @@ import { useLogin } from "@/features/auth/hooks/useLogin";
 import { GoogleButton } from "@/features/auth/components/GoogleButton";
 
 export function LoginForm() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/resources";
+
   const { login, isLoading, error } = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
-    if (success) {
-      router.push("/resources");
-    }
+    await login(email, password, callbackUrl);
   };
 
   return (
