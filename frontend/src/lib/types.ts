@@ -64,6 +64,14 @@ export interface ResourceQuery {
   page_size?: string;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export interface AuthResponse {
   token: string;
   student: StudentDto;

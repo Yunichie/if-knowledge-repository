@@ -4,10 +4,17 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiClient } from "@/lib/api-client";
-import type { Resource, ResourceQuery, CreateResourceRequest } from "@/lib/types";
+import type {
+  Resource,
+  ResourceQuery,
+  CreateResourceRequest,
+  PaginatedResponse,
+} from "@/lib/types";
 
 /** Server-side: list resources with optional search/filter/pagination. */
-export async function getResources(params: ResourceQuery): Promise<Resource[]> {
+export async function getResources(
+  params: ResourceQuery,
+): Promise<PaginatedResponse<Resource>> {
   const session = await getServerSession(authOptions);
   const searchParams = new URLSearchParams();
 
@@ -21,7 +28,7 @@ export async function getResources(params: ResourceQuery): Promise<Resource[]> {
   const query = searchParams.toString();
   const path = `/api/v1/resources${query ? `?${query}` : ""}`;
 
-  return apiClient<Resource[]>(path, {
+  return apiClient<PaginatedResponse<Resource>>(path, {
     token: session?.accessToken,
   });
 }
@@ -37,7 +44,7 @@ export async function getResource(id: string): Promise<Resource> {
 /** Client-side: create a new resource. */
 export async function createResource(
   token: string,
-  body: CreateResourceRequest
+  body: CreateResourceRequest,
 ): Promise<Resource> {
   return apiClient<Resource>("/api/v1/resources", {
     method: "POST",
@@ -47,10 +54,7 @@ export async function createResource(
 }
 
 /** Client-side: delete a resource. */
-export async function deleteResource(
-  token: string,
-  id: string
-): Promise<void> {
+export async function deleteResource(token: string, id: string): Promise<void> {
   return apiClient<void>(`/api/v1/resources/${id}`, {
     method: "DELETE",
     token,
