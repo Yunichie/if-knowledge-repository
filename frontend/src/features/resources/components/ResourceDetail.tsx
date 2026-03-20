@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { PdfViewer } from "@/features/resources/components/PdfViewer";
 import { useDeleteResource } from "@/features/resources/hooks/useDeleteResource";
 import type { Resource } from "@/lib/types";
 
@@ -32,14 +32,12 @@ const TYPE_BADGE_STYLES: Record<string, string> = {
 };
 
 /**
- * Extract a YouTube video ID from any common URL:
+ * Extract a YouTube embed URL from any common URL shape:
  *   https://www.youtube.com/watch?v=VIDEO_ID
  *   https://www.youtube.com/watch?v=VIDEO_ID&t=120&list=PL...
  *   https://youtu.be/VIDEO_ID
  *   https://youtu.be/VIDEO_ID?t=120
  *   https://www.youtube.com/embed/VIDEO_ID
- *
- * Returns null if no valid video ID can be found.
  */
 function getYouTubeEmbedUrl(rawUrl: string): string | null {
   let parsed: URL;
@@ -58,14 +56,11 @@ function getYouTubeEmbedUrl(rawUrl: string): string | null {
     parsed.hostname === "youtube.com" ||
     parsed.hostname === "m.youtube.com"
   ) {
-    if (parsed.pathname.startsWith("/embed/")) {
-      return rawUrl;
-    }
+    if (parsed.pathname.startsWith("/embed/")) return rawUrl;
     videoId = parsed.searchParams.get("v");
   }
 
   if (!videoId) return null;
-
   return `https://www.youtube.com/embed/${videoId}`;
 }
 
@@ -80,8 +75,11 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
 
   const badgeStyle =
     TYPE_BADGE_STYLES[resource.type] ?? "bg-muted text-muted-foreground";
-
   const isAuthor = !!session?.userId && session.userId === resource.author_id;
+  const embedUrl =
+    resource.type === "youtube" && resource.youtube_url
+      ? getYouTubeEmbedUrl(resource.youtube_url)
+      : null;
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this resource?")) return;
@@ -90,13 +88,9 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
     router.refresh();
   };
 
-  const embedUrl =
-    resource.type === "youtube" && resource.youtube_url
-      ? getYouTubeEmbedUrl(resource.youtube_url)
-      : null;
-
   return (
     <article className="space-y-6">
+      {/* Header */}
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <span
@@ -140,23 +134,9 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
 
       <Separator />
 
-      {/* Content area */}
+      {/* Content */}
       {resource.type === "pdf" && resource.file_url && (
-        <div className="space-y-3">
-          <a
-            href={resource.file_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(buttonVariants())}
-          >
-            Download PDF
-          </a>
-          <iframe
-            src={resource.file_url}
-            className="w-full h-150 rounded-lg border border-border"
-            title={resource.title}
-          />
-        </div>
+        <PdfViewer url={resource.file_url} title={resource.title} />
       )}
 
       {resource.type === "youtube" &&

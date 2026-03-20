@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/features/upload/components/MarkdownEditor";
 import { usePdfUpload } from "@/features/upload/hooks/usePdfUpload";
 import { createResource } from "@/features/resources/api";
 import { ApiError } from "@/lib/api-client";
@@ -87,7 +88,8 @@ export function UploadForm({ categories }: UploadFormProps) {
       router.push("/resources");
       router.refresh();
     } catch (e) {
-      const message = e instanceof ApiError ? e.message : "Failed to create resource";
+      const message =
+        e instanceof ApiError ? e.message : "Failed to create resource";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -179,7 +181,9 @@ export function UploadForm({ categories }: UploadFormProps) {
             required
             disabled={isLoading}
           />
-          <p className="text-xs text-muted-foreground">Maximum file size: 50 MB</p>
+          <p className="text-xs text-muted-foreground">
+            Maximum file size: 50 MB
+          </p>
         </div>
       )}
 
@@ -200,16 +204,11 @@ export function UploadForm({ categories }: UploadFormProps) {
 
       {resourceType === "article" && (
         <div className="space-y-1.5">
-          <Label htmlFor="content">Article Content (Markdown)</Label>
-          <Textarea
-            id="content"
-            placeholder="Write your article in Markdown…"
+          <Label>Article Content (Markdown)</Label>
+          <MarkdownEditor
             value={articleContent}
-            onChange={(e) => setArticleContent(e.target.value)}
-            required
+            onChange={setArticleContent}
             disabled={isLoading}
-            rows={12}
-            className="font-mono text-sm"
           />
         </div>
       )}
