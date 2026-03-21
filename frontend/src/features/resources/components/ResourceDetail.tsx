@@ -1,11 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { PdfViewer } from "@/features/resources/components/PdfViewer";
 import { useDeleteResource } from "@/features/resources/hooks/useDeleteResource";
 import type { Resource } from "@/lib/types";
@@ -72,6 +81,7 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const { deleteResource, isLoading: isDeleting } = useDeleteResource();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const badgeStyle =
     TYPE_BADGE_STYLES[resource.type] ?? "bg-muted text-muted-foreground";
@@ -82,7 +92,7 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
       : null;
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this resource?")) return;
+    setConfirmOpen(false);
     await deleteResource(resource.id);
     router.push("/resources");
     router.refresh();
@@ -181,7 +191,7 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
             <Button
               variant="destructive"
               size="sm"
-              onClick={handleDelete}
+              onClick={() => setConfirmOpen(true)}
               disabled={isDeleting}
             >
               {isDeleting ? "Deleting…" : "Delete Resource"}
@@ -189,6 +199,35 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
           </div>
         </>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete resource?</DialogTitle>
+            <DialogDescription>
+              <strong className="text-foreground">{resource.title}</strong> will
+              be permanently deleted. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </article>
   );
 }
