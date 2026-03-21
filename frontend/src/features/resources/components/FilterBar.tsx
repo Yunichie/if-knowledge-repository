@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Category, ResourceType } from "@/lib/types";
 
 const RESOURCE_TYPES: { label: string; value: ResourceType }[] = [
@@ -25,6 +26,7 @@ export function FilterBar({ categories }: FilterBarProps) {
 
   const currentType = searchParams.get("type") ?? "";
   const currentCategory = searchParams.get("category_id") ?? "";
+  const currentTag = searchParams.get("tag") ?? "";
 
   const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,6 +71,7 @@ export function FilterBar({ categories }: FilterBarProps) {
 
   return (
     <div className="space-y-3">
+      {/* Search input */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Input
@@ -77,28 +80,25 @@ export function FilterBar({ categories }: FilterBarProps) {
             value={searchValue}
             onChange={(e) => handleSearchChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSearchSubmit();
-              }
+              if (e.key === "Enter") handleSearchSubmit();
             }}
             className="pr-9"
           />
-          {/* Inline search icon button (affordance🥀) */}
           <button
             type="button"
             onClick={handleSearchSubmit}
             aria-label="Search"
-            className="
-              absolute inset-y-0 right-0 flex items-center px-2.5
-              text-muted-foreground hover:text-foreground
-              transition-colors
-            "
+            className={cn(
+              "absolute inset-y-0 right-0 flex items-center px-2.5",
+              "text-muted-foreground hover:text-foreground transition-colors",
+            )}
           >
             <Search className="h-4 w-4" />
           </button>
         </div>
       </div>
 
+      {/* Type + Category filters */}
       <div className="flex flex-wrap gap-2">
         <Button
           variant={currentType === "" ? "default" : "outline"}
@@ -145,6 +145,26 @@ export function FilterBar({ categories }: FilterBarProps) {
           </Button>
         ))}
       </div>
+
+      {/* Active tag pill */}
+      {currentTag && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            Filtered by tag:
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            {currentTag}
+            <button
+              type="button"
+              onClick={() => updateParams("tag", "")}
+              aria-label={`Remove tag filter: ${currentTag}`}
+              className="ml-0.5 rounded-sm hover:bg-primary/20 transition-colors p-0.5"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,13 +21,14 @@ interface ResourceCardProps {
 }
 
 export function ResourceCard({ resource }: ResourceCardProps) {
-  const badgeStyle = TYPE_BADGE_STYLES[resource.type] ?? "bg-muted text-muted-foreground";
+  const badgeStyle =
+    TYPE_BADGE_STYLES[resource.type] ?? "bg-muted text-muted-foreground";
 
   return (
-    <Link href={`/resources/${resource.id}`}>
-      <div
-        className="rounded-lg border border-border bg-card p-4 sm:p-5
-                    hover:border-primary/40 transition-colors duration-150 h-full"
+    <div className="rounded-lg border border-border bg-card hover:border-primary/40 transition-colors duration-150 h-full flex flex-col">
+      <Link
+        href={`/resources/${resource.id}`}
+        className="flex-1 block p-4 sm:p-5"
       >
         <span
           className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${badgeStyle}`}
@@ -48,20 +49,21 @@ export function ResourceCard({ resource }: ResourceCardProps) {
         <p className="mt-2 text-xs text-muted-foreground">
           {resource.author_name} · {formatDate(resource.created_at)}
         </p>
+      </Link>
 
-        {resource.tags.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {resource.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </Link>
+      {resource.tags.length > 0 && (
+        <div className="px-4 pb-4 sm:px-5 sm:pb-5 flex flex-wrap gap-1">
+          {resource.tags.slice(0, 3).map((tag) => (
+            <Link
+              key={tag}
+              href={`/resources?tag=${encodeURIComponent(tag)}`}
+              className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              {tag}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
