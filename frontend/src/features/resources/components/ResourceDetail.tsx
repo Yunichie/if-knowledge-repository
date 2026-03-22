@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -93,9 +94,13 @@ export function ResourceDetail({ resource }: ResourceDetailProps) {
 
   const handleDelete = async () => {
     setConfirmOpen(false);
-    await deleteResource(resource.id);
-    router.push("/resources");
-    router.refresh();
+    try {
+      await deleteResource(resource.id);
+      router.push("/resources");
+      router.refresh();
+    } catch {
+      toast.error("Failed to delete resource. Please try again.");
+    }
   };
 
   return (

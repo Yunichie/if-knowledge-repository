@@ -2,26 +2,21 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { deleteResource } from "@/features/resources/api";
-import { ApiError } from "@/lib/api-client";
+import { deleteResource as deleteResourceApi } from "@/features/resources/api";
 
-/** Hook for deleting a resource. */
+/** Hook for deleting a resource */
 export function useDeleteResource() {
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<ApiError | null>(null);
 
-  const handleDelete = async (id: string) => {
+  const deleteResource = async (id: string): Promise<void> => {
     setIsLoading(true);
-    setError(null);
     try {
-      await deleteResource(session?.accessToken ?? "", id);
-    } catch (e) {
-      setError(e as ApiError);
+      await deleteResourceApi(session?.accessToken ?? "", id);
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { deleteResource: handleDelete, isLoading, error };
+  return { deleteResource, isLoading };
 }
