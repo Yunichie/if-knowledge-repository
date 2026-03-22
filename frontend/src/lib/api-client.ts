@@ -6,7 +6,7 @@
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -15,18 +15,26 @@ export class ApiError extends Error {
 
 export async function apiClient<T>(
   path: string,
-  options?: RequestInit & { token?: string }
+  options?: RequestInit & { token?: string },
 ): Promise<T> {
   const { token, ...fetchOptions } = options ?? {};
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
-    ...fetchOptions,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...fetchOptions.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
+      ...fetchOptions,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...fetchOptions.headers,
+      },
+    });
+  } catch {
+    throw new ApiError(
+      0,
+      "Unable to reach the server. Please check your connection and try again.",
+    );
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: "Unknown error" }));
