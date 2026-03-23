@@ -20,7 +20,7 @@ interface UploadFormProps {
 export function UploadForm({ categories }: UploadFormProps) {
   const router = useRouter();
   const { data: session } = useSession();
-  const { upload } = usePdfUpload();
+  const { upload, uploadProgress } = usePdfUpload();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +95,8 @@ export function UploadForm({ categories }: UploadFormProps) {
       setIsLoading(false);
     }
   };
+
+  const isUploading = uploadProgress !== null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -184,6 +186,22 @@ export function UploadForm({ categories }: UploadFormProps) {
           <p className="text-xs text-muted-foreground">
             Maximum file size: 50 MB
           </p>
+
+          {/* Upload progress bar */}
+          {isUploading && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Uploading file…</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-150 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -221,7 +239,11 @@ export function UploadForm({ categories }: UploadFormProps) {
 
       <div className="flex gap-3">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Publishing…" : "Publish Resource"}
+          {isUploading
+            ? `Uploading… ${uploadProgress}%`
+            : isLoading
+              ? "Publishing…"
+              : "Publish Resource"}
         </Button>
         <Button
           type="button"
