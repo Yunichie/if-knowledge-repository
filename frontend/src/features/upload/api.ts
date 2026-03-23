@@ -9,7 +9,7 @@ import type { PresignRequest, PresignResponse } from "@/lib/types";
 /** Client-side: get a presigned upload URL. */
 export async function presign(
   token: string,
-  body: PresignRequest
+  body: PresignRequest,
 ): Promise<PresignResponse> {
   return apiClient<PresignResponse>("/api/v1/uploads/presign", {
     method: "POST",
@@ -21,7 +21,11 @@ export async function presign(
 /** Server-side: list all categories. */
 export async function getCategories() {
   const session = await getServerSession(authOptions);
-  return apiClient<{ id: string; name: string; slug: string }[]>("/api/v1/categories", {
-    token: session?.accessToken,
-  });
+  return apiClient<{ id: string; name: string; slug: string }[]>(
+    "/api/v1/categories",
+    {
+      token: session?.accessToken,
+      next: { revalidate: 3600 },
+    },
+  );
 }
