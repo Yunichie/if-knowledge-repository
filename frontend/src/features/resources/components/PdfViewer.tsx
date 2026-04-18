@@ -75,7 +75,7 @@ export function PdfViewer({ url, title }: PdfViewerProps) {
             pageNumber={currentPage}
             width={containerWidth || undefined}
             renderTextLayer
-            renderAnnotationLayer
+            renderAnnotationLayer={false}
           />
         </Document>
       </div>
